@@ -1,0 +1,54 @@
+---
+references:
+- id: Grimsrud2014
+  title: 'Transit to eternal youth: lifecycle and generational trends in Greater Montreal public transport mode share'
+  author:
+    - family: Grimsrud
+      given: Michael
+    - family: El-Geneidy
+      given: Ahmed
+  container-title: Transportation
+  volume: 41
+  URL: https://doi.org/10.1007/s11116-013-9454-9
+  DOI: 10.1007/s11116-013-9454-9
+  issue: 1
+  type: article-journal
+  issued:
+    year: 2014
+    month: 1
+    
+- id: Krueger2020
+  title: 'X vs. Y: an analysis of intergenerational differences in transport mode use among young adults'
+  author:
+    - family: Krueger
+      given: Rico
+    - family: Rashidi
+      given: Taha H.
+    - family: Vij
+      given: Akshay
+  container-title: Transportation
+  volume: 47
+  URL: https://doi.org/10.1007/s11116-019-10009-7
+  DOI: 10.1007/s11116-019-10009-7
+  issue: 5
+  type: article-journal
+  issued:
+    year: 2020
+    month: 10
+    
+- id: Bell2013
+  title: 'The impossibility of separating age, period and cohort effects'
+  author:
+    - family: Bell
+      given: Andrew
+    - family: Jones
+      given: Kelvyn
+  container-title: Social Science & Medicine
+  volume: 93
+  URL: https://www.sciencedirect.com/science/article/pii/S0277953613002633
+  DOI: 10.1016/j.socscimed.2013.04.029
+  type: article-journal
+  issued:
+    year: 2013
+    month: 9
+---

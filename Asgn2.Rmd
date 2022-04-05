@@ -1,30 +1,48 @@
 ---
-title: "Transport Planning Methods - Assignment 2"
+title: "Intergenerational changes in public transit use: comparing England in 2009 and 2019 \r\n Transport Planning Methods - Assignment 2"
 author: "2722008W"
-date: "2022-03-28"
+date: "2022-03-29"
 output: pdf_document
 bibliography: bib.yaml
+csl: elsevier-harvard.csl
+df_print: kable
 ---
 
-# Introduction & Literature Review
+# Introduction
 
-It is well understood that younger people, especially under 30s, are more likely to travel by public transit than older people. It is less clear to what extent this tendency is a result of life cycle factors which change as generational cohorts age in contrast to a sign that younger cohorts exhibit an enduring preference for public transit. This is highly pertinent to anyone seeking to reduce car dependency in the interest of fostering safer, space-efficient and sustainable urban environments. This research paper makes use of data from the National Travel Survey of residents of England from years 2009 and 2019 to analyse the changing levels of public transit use of three cohorts across those ten years.
+It is well understood that younger people, especially under 30s, are more likely to travel by public transit than older people. It is less clear to what extent this tendency is a result of life cycle factors which change as generational cohorts age in contrast to an enduring preference towards public transit among younger cohorts. This is highly pertinent to anyone seeking to reduce car dependency in the interest of fostering safer, space-efficient and sustainable urban environments. This research paper makes use of data from the National Travel Survey 2009 and 2019 to analyse the changing levels of public transit within three cohorts across those ten years.
+
+Two binary logit models were generated, one for 2009 and another for 2019. This paper discusses the model specifications, interprets the results and outlines conclusions that can be drawn from them.
+
+# Literature Review
+
+A key challenge in this area of research is the separation of age, period and cohort effects when investigating the source of observed changes over time (@Bell2013). Age effects represent the effects of the human life cycle on observations such as young people becoming eligible for driving licences or loss of sensory ability as individuals age. Period effects represent the effect of the changing conditions in the wider world including economic, political or environmental factors. Finally, cohort effects, which are those of most interest to this paper, are effects observed which are curious to certain groups of co-evals as a result of the conditions of their upbringing that persist with them throughout their lives. 
+
+@Grimsrud2014 found that although recent cohorts of young people use more public transportation in Greater Montreal, they tend to use less as they age towards their early 30s after which point their public transport use stabilises. For more recent cohorts, this stabilisation point was found to be higher than previous cohorts.
+
+Applying a hierarchical Bayesian multivariate Poisson log-normal model to data from the German Mobility Panel, @Krueger2020 found that the increase in the mean predicted number of public transit trips between 1998 and 2016 can largely be attributed to cohort effects with the role of period and demographic effects being negligible.
 
 # Methodology
-The stage, trip, household and individual tables were used. Only stages of 0.5 miles or greater length were included. Any missing values were dropped. In total 196,756 trip stages were analysed from 8,424 individuals surveyed in 2009 and 6,182 in 2019.
 
-The mode of each stage was categorised as either "Public transport or active travel" or "Private vehicle". The category of "Private vehicle" includes stages where the individual travelled by private car (as either driver or passenger), by taxi or where the mode was recorded as "Other private transport". "Public transport or active travel" includes all other modes such as walking, cycling, bus, train etc.
+## Data preparation
 
-The age variable was recoded such as to represent generational cohorts. For example, in the 2009 data, ages 20-29 were coded as having been born in the 1980s and in the 2019 data ages 30-39 were coded as having been born in the 1980s.
+From the National Travel Survey, only the Stage, Trip, Household and Individual tables were used. Only stages of 0.5 miles or greater distance were included. Any missing values were dropped. In total 196,756 stages were analysed from 8,424 individuals surveyed in 2009 and 6,182 in 2019.
+
+The mode of each stage was categorised as either "Public transport or active travel" or "Private vehicle". The category of "Private vehicle" includes stages where the individual travelled by private car (as either driver or passenger), by taxi or where the mode was recorded as "Other private transport". "Public transport or active travel" includes all other modes such as walking, cycling, bus, train etc. This grouping together of modes into a binary allows the application of a simpler binary model whilst dividing more sustainable modes (to be encouraged) from less sustainable modes (to be discouraged).
+
+The age variable was recoded so as to represent generational cohorts. For example, in the 2009 data, ages 20-29 were coded as having been born in the 1980s and in the 2019 data ages 30-39 were coded as having been born in the 1980s. This study focuses solely on the cohorts representing working age adults in both 2009 and 2019. Older cohorts were not included because it is known that over the age of 50, transport behaviour begins to be significantly affected by retirement and otherwise leaving the workforce. Younger cohorts were similarly not included because the transport behaviour of teens is significantly tied with that of their parents and as such cannot be observed independently.
 
 ```{r setup, include=FALSE}
 knitr::opts_chunk$set(echo = TRUE)
 library(dplyr)
 library(tidyverse)
 library(ggplot2)
+library(gridExtra)
+library(pscl)
 ```
 
-```{r, echo=FALSE}
+
+```{r, echo=FALSE, warning=FALSE, message=FALSE}
 stage = read_tsv("data/UKDA-5340-tab/tab/stage_eul_2002-2020.tab") %>%
   select(IndividualID, TripID, StageDistance, StageTime, StageMode_B11ID, SurveyYear) %>%
   filter(SurveyYear == 2009 | SurveyYear == 2019) %>%
@@ -60,8 +78,8 @@ household = read_tsv("data/UKDA-5340-tab/tab/household_eul_2002-2020.tab") %>%
   drop_na()
 
 ```
-
-```{r}
+## Final dataset summary
+```{r, echo=FALSE, warning=FALSE, message=FALSE}
 
 allMerged = individual2009 %>%
   rbind(individual2019) %>%
@@ -76,20 +94,57 @@ allMerged = individual2009 %>%
 summary(allMerged)
 ```
 
-```{r}
-ggplot(allMerged %>% filter(SurveyYear == 2009), aes(x = BirthDecade, fill = StageMode_B11ID)) +
-  geom_bar(position = "fill")
+## Analytical model
 
-ggplot(allMerged %>% filter(SurveyYear == 2019), aes(x = BirthDecade, fill = StageMode_B11ID)) +
-  geom_bar(position = "fill")
-```
-It was found that private
+The model used herein is a binary logistic regression model. This model predicts the probability of an individual taking public transport or active travel (binary mode choice) for a given trip with known values of the independent variables: stage distance, decade of birth (cohort), sex, ethnic group, household income quintile and trip purpose. Two models are produced, one for the 2009 survey year and another for 2019.
 
-```{r}
+The assumptions of both models are:
+
+1. $Y_{i}^*=X_i\beta+\epsilon_{i}$
+
+2. $Y_{i}=\begin{cases} 1\ if\ Y_{i}^* > 0 \\ 0\ if\ Y_{i}^* \le 0\end{cases}$
+
+given $Y_{i}=\begin{cases} 1\ if\ the\ i^{th}\ stage\ was\ by\ public\ transit\ or\ active\ travel \\ 0\ otherwise\end{cases}$
+
+$Y_{i}^*$ in this specification is a latent variable which is a linear mapping of $Y_{i}$, the binary mode choice (1 if Private vehicle, 0 if Public transport or active travel), onto a continuous, infinite range. $X_i$ represents each of the observations of the independent variables in the model. $\epsilon_{i}$ represents the error associated with that observation of $X$. Finally, $\beta$ represents the contribution or coefficient of independent variable $X$ as calculated by the model.
+
+The completed binary logistic regression model takes the form:
+
+$logit(p) = ln(\frac{p}{1-p}) = ln(odds)$
+
+# Results
+## 2009 Model
+```{r, echo=FALSE, warning=FALSE, message=FALSE}
 logit2009 = glm(StageMode_B11ID ~ BirthDecade + StageDistance + Sex_B01ID + EthGroupTS_B02ID + HHIncQDSEngTS_B01ID + TripPurpose_B04ID, family="binomial", data=allMerged %>% filter(SurveyYear == 2009), x=T)
 
 logit2019 = glm(StageMode_B11ID ~ BirthDecade + StageDistance + Sex_B01ID + EthGroupTS_B02ID + HHIncQDSEngTS_B01ID + TripPurpose_B04ID, family="binomial", data=allMerged %>% filter(SurveyYear == 2019), x=T)
 
 summary(logit2009)
 
+pR2(logit2009)['McFadden']
+
+```
+## 2019 Model
+```{r, echo=FALSE, warning=FALSE, message=FALSE}
+summary(logit2019)
+
+pR2(logit2019)['McFadden']
+
+```
+
+## Discussion
+
+In the 2009 model, all independent variables were found to be statistically significant.
+In the 2019 model, all independent variables were found to be statistically significant except ethnic group.
+
+
+
+# Appendix
+```{r, echo=FALSE, warning=FALSE, message=FALSE, fig.align="center", fig.width = 10, fig.height=4}
+grid.arrange(ggplot(allMerged %>% filter(SurveyYear == 2009), aes(x = BirthDecade, fill = StageMode_B11ID)) + geom_bar(position = "fill"),
+             ggplot(allMerged %>% filter(SurveyYear == 2019), aes(x = BirthDecade, fill = StageMode_B11ID)) + geom_bar(position = "fill"), ncol = 2)
+
+```
+```{r, echo=FALSE, warning=FALSE, message=FALSE}
+wordcountaddin::text_stats()
 ```
